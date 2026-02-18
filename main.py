@@ -1,27 +1,28 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from datetime import datetime
 import json
+import os
 
 app = FastAPI()
 
-# Modelo del JSON esperado
 class Registro(BaseModel):
     nombre: str
-    monto: float
-    descripcion: str | None = None
+    correo: str
+    mensaje: str
 
+# POST - Guarda datos
 @app.post("/api/ingresar")
 async def ingresar_datos(registro: Registro):
+    with open("datos.json", "w") as f:
+        json.dump(registro.dict(), f)
 
-    data = registro.dict()
-    data["fecha_recibido"] = datetime.now().isoformat()
+    return {"mensaje": "Datos guardados correctamente"}
 
-    # Guardar en archivo
-    with open("datos.json", "a") as f:
-        f.write(json.dumps(data) + "\n")
-
-    return {
-        "mensaje": "Datos recibidos correctamente",
-        "data": data
-    }
+# GET - Devuelve datos para Power BI
+@app.get("/api/datos")
+async def obtener_datos():
+    if os.path.exists("datos.json"):
+        with open("datos.json", "r") as f:
+            data = json.load(f)
+        return data
+    return {"mensaje": "No hay datos aún"}
