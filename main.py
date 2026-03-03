@@ -8,10 +8,8 @@ import secrets
 app = FastAPI()
 security = HTTPBasic()
 
-# 🔹 Usuario y contraseña (mejor ponerlos en variables de entorno en Render)
 API_USER = os.environ.get("API_USER")
 API_PASSWORD = os.environ.get("API_PASSWORD")
-
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 class Registro(BaseModel):
@@ -22,7 +20,6 @@ class Registro(BaseModel):
 def get_conn():
     return psycopg2.connect(DATABASE_URL)
 
-# 🔐 Función para validar usuario y contraseña
 def validar_usuario(credentials: HTTPBasicCredentials = Depends(security)):
     correct_user = secrets.compare_digest(credentials.username, API_USER)
     correct_pass = secrets.compare_digest(credentials.password, API_PASSWORD)
@@ -32,7 +29,6 @@ def validar_usuario(credentials: HTTPBasicCredentials = Depends(security)):
 
     return credentials.username
 
-# POST protegido
 @app.post("/api/ingresar")
 async def ingresar_datos(
     registro: Registro,
@@ -65,6 +61,23 @@ async def ingresar_datos(
         conn.close()
 
         return {"mensaje": "Datos guardados correctamente"}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/datos")
+async def obtener_datos():
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT nombre, correo, mensaje FROM registro WHERE id=1;")
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if row:
+            return {"nombre": row[0], "correo": row[1], "mensaje": row[2]}
+        return {"mensaje": "No hay datos aún"}
 
     except Exception as e:
         return {"error": str(e)}
